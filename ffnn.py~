@@ -1,0 +1,78 @@
+#ffnn.py
+from __future__ import print_function #for using python3's print_function in python2
+from layer import * #import all members from layer.py
+import util #import util.py
+import time
+import random
+import numpy as np
+import sys
+from sklearn import datasets
+from sklearn.model_selection import train_test_split
+
+
+def main(arch, epoch):
+    if arch == 'linear':
+        model = Sequential()   #model composes the sequential of hidden layers of the neural network by using Sequential() which is a class of layer.py
+        model.addlayer(FlattenLayer())
+        model.addlayer(LinearLayer(3072, 784))
+        model.addlayer(ReLULayer())
+        model.addlayer(LinearLayer(784, 784))
+        model.addlayer(ReLULayer())
+        model.addlayer(LinearLayer(784, 10))
+
+        classifier = Classifier(model) #to make model work as a system by using Classifier() which is a class of layer.py
+
+    elif arch == 'cnn':
+        model = Sequential()
+        model.addlayer()
+        model.addlayer()
+        classifier = Classifier(model)
+        
+    mnist = datasets.fetch_openml('mnist_784', version=1,)
+    n = len(mnist.data)
+    N = 10000
+    indices = np.random.permutation(range(n))[:N]
+    image = mnist.data[indices]
+    label_original = mnist.target[indices]
+    label = np.eye(10)[label_original.astype(int)]
+
+    image_train, image_test, label_train, label_test = train_test_split(image,label,train_size=0.8)
+
+    batchsize = 100
+    ntrain = 50000
+    ntest = 10000
+
+    for e in range(epoch):
+        print('epoch %d'%e)
+        randinds = np.random.permutation(ntrain) #create an array which includes numbers 0 to ntrain randomly
+        for i_train in range(0, ntrain, batchsize):
+            ind = randinds[it:it+batchsize]
+            x = image_train[ind]
+            t = label_train[ind]
+            start = time.time()
+            loss, acc = classifier.update(x, t) #make input pass through the classifier,doing BP, then update the parameters of each layer  
+            end = time.time()
+            print('train iteration %d, elapsed time %f, loss %f, acc %f'%(i_train//batchsize, end-start, loss, acc))
+
+        start = time.time()
+        acctest = 0
+        losstest = 0
+        for i_test in range(0, ntest, batchsize):
+            x = image_test[i_test:i_test+batchsize]
+            t = label_test[i_test:i_test+batchsize]
+            loss, acc = classifier.predict(x, t)
+            acctest += int(acc * batchsize)
+            losstest += loss
+        acctest /= (1.0 * ntest)
+        losstest /= (ntest // batchsize)
+        end = time.time()
+        print('test, elapsed time %f, loss %f, acc %f'%(end-start, loss, acc))
+        
+if __name__ == '__main__': #not to execute main() when another python file imports this file
+    arch = sys.argv[1] #get standard input as one argument of main()
+    if arch == 'cnn' or arch == 'linear':
+        main(arch, 40)
+    else:
+        print('arch should be cnn or linear')
+
+        
